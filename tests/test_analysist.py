@@ -3,22 +3,12 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from mythings.engine import EngineRequest, EngineResult, NoopEngine
+from mythings.engine import NoopEngine
 from mythings.ledger import Ledger
 from mythings.policy import Action, Decision, PolicyResult
 
-from conftest import FakeRunner
+from conftest import ScriptedEngine, fake_gh
 from mydataanalysist.analysist import Analysist
-
-
-class ScriptedEngine:
-    def __init__(self, reply: str) -> None:
-        self._reply = reply
-        self.requests: list[EngineRequest] = []
-
-    def run(self, request: EngineRequest) -> EngineResult:
-        self.requests.append(request)
-        return EngineResult(text=self._reply)
 
 
 class DenyPolicy:
@@ -78,7 +68,7 @@ def test_analyze_skips_engine_call_when_over_size_cap(tmp_path: Path) -> None:
 
     assert result.outcome == "skipped"
     assert "too_many_rows" in result.detail
-    assert engine.requests == []
+    assert engine.calls == []
     entries = list(ledger)
     assert entries[-1].outcome == "skipped"
 
@@ -92,7 +82,7 @@ def test_analyze_skips_engine_call_on_unparseable_file(tmp_path: Path) -> None:
     result = analysist.analyze(csv_path)
 
     assert result.outcome == "skipped"
-    assert engine.requests == []
+    assert engine.calls == []
 
 
 def test_no_raw_row_data_reaches_engine_prompt(tmp_path: Path) -> None:
@@ -103,14 +93,14 @@ def test_no_raw_row_data_reaches_engine_prompt(tmp_path: Path) -> None:
 
     analysist.analyze(csv_path)
 
-    assert "hunter2" not in engine.requests[0].prompt
-    assert "correct-horse" not in engine.requests[0].prompt
+    assert "hunter2" not in engine.calls[0].prompt
+    assert "correct-horse" not in engine.calls[0].prompt
 
 
 def test_comment_posts_profile_and_insights_when_requested(tmp_path: Path) -> None:
     ledger = Ledger(tmp_path / "ledger.jsonl")
     csv_path = _write_csv(tmp_path, "id,price\n1,9.5\n2,10.0\n")
-    fake = FakeRunner()
+    fake = fake_gh()
     analysist = Analysist(
         ledger=ledger, repo="owner/name", runner=fake, engine=NoopEngine()
     )
@@ -139,7 +129,7 @@ def test_comment_skipped_without_repo(tmp_path: Path) -> None:
 def test_comment_denied_by_policy_is_not_posted(tmp_path: Path) -> None:
     ledger = Ledger(tmp_path / "ledger.jsonl")
     csv_path = _write_csv(tmp_path, "id\n1\n")
-    fake = FakeRunner()
+    fake = fake_gh()
     analysist = Analysist(
         ledger=ledger,
         repo="owner/name",
