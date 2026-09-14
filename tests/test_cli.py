@@ -3,18 +3,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from mythings.engine import ClaudeCLIEngine, NoopEngine
-
 from mydataanalysist import cli
 from mydataanalysist.analysist import Result
-
-
-def test_build_engine_noop_by_default() -> None:
-    assert isinstance(cli.build_engine("noop"), NoopEngine)
-
-
-def test_build_engine_claude_cli() -> None:
-    assert isinstance(cli.build_engine("claude-cli"), ClaudeCLIEngine)
 
 
 def test_analyze_prints_json(monkeypatch, tmp_path: Path, capsys) -> None:

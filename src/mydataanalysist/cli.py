@@ -4,18 +4,12 @@ import argparse
 import json
 from pathlib import Path
 
-from mythings.engine import ClaudeCLIEngine, Engine, NoopEngine
+from mythings.engine import build_engine_from_args
 from mythings.ledger import Ledger
 
 from mydataanalysist.analysist import Analysist
 
 _ENGINE_NAMES = ("noop", "claude-cli")
-
-
-def build_engine(name: str, *, model: str | None = None) -> Engine:
-    if name == "claude-cli":
-        return ClaudeCLIEngine(model=model)
-    return NoopEngine()
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -38,7 +32,7 @@ def main(argv: list[str] | None = None) -> int:
     analyze.add_argument("--engine-model", help="model for --engine claude-cli")
 
     args = parser.parse_args(argv)
-    engine = build_engine(args.engine, model=args.engine_model)
+    engine = build_engine_from_args(args)
 
     analysist = Analysist(
         ledger=Ledger(args.ledger),
